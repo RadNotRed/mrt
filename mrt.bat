@@ -4,12 +4,29 @@ color 0A
 Mode 100,30
 setlocal EnableDelayedExpansion
 
-net session >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Please run this script as an administrator.
-    pause
-    exit
-)
+:: BatchGotAdmin
+:-------------------------------------
+REM  --> Check for permissions
+>nul 2>&1 "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
+
+REM --> If error flag set, we do not have admin.
+if '%errorlevel%' NEQ '0' (
+    echo Requesting administrative privileges...
+    goto UACPrompt
+) else ( goto gotAdmin )
+
+:UACPrompt
+    echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\getadmin.vbs"
+    echo UAC.ShellExecute "%~s0", "", "", "runas", 1 >> "%temp%\getadmin.vbs"
+
+    "%temp%\getadmin.vbs"
+    exit /B
+
+:gotAdmin
+    if exist "%temp%\getadmin.vbs" ( del "%temp%\getadmin.vbs" )
+    pushd "%CD%"
+    CD /D "%~dp0"
+:--------------------------------------
 
 :MainMenu
 cls
@@ -49,7 +66,7 @@ if "%av_choice%"=="2" call :DownloadFile HitmanPro_x64.exe https://download.soph
 if "%av_choice%"=="3" call :DownloadFile MBSetup.exe https://www.malwarebytes.com/api/downloads/mb-windows?filename=MBSetup.exe
 if "%av_choice%"=="4" call :DownloadFile esetonlinescanner.exe https://download.eset.com/com/eset/tools/online_scanner/latest/esetonlinescanner.exe
 if "%av_choice%"=="5" call :DownloadFile adwcleaner.exe https://downloads.malwarebytes.com/file/adwcleaner
-if "%av_choice%"=="b" goto MainMenu
+if "%av_choice%"=="b" goto OnDemandScanners
 goto MainMenu
 
 :RealTimeProtection
@@ -61,7 +78,7 @@ echo b) Return to Main Menu
 set /p av_choice="Enter your choice: "
 if "%av_choice%"=="1" call :DownloadFile kaspersky-free.exe https://pdc3.trt.pdc.kaspersky.com/DownloadManagers/c6/c6205467-e7fe-47ea-b6dd-c1a5465bdcac/startup.exe
 if "%av_choice%"=="2" call :DownloadFile bitdefender_avfree.exe https://download.bitdefender.com/windows/installer/en-us/bitdefender_avfree.exe
-if "%av_choice%"=="b" goto MainMenu
+if "%av_choice%"=="b" goto RealTimeProtection
 goto MainMenu
 
 :UsefulSoftware
@@ -84,6 +101,7 @@ if exist "C:\ProgramData\chocolatey\bin\choco.exe" (
 )
 
 :SoftwareOptions
+cls
 echo Select a Useful Software to install:
 echo 1) Rufus Portable
 echo 2) Ventoy
